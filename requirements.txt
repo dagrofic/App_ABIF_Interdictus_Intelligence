@@ -1,0 +1,6 @@
+geopandas
+pandas
+shapely
+pyogrio
+streamlit
+zipfile36
