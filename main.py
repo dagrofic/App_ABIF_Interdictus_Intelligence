@@ -31,4 +31,4 @@ def sharepoint():
     return f"Para obter os mapas, acesse: <a href='{SHAREPOINT_URL}' target='_blank'>SharePoint</a>"
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000, debug=False)
