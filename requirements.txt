@@ -1,4 +1,7 @@
-
-Flask==2.3.2
-geopandas==0.14.2
-requests==2.31.0
+Flask
+geopandas
+shapely
+fiona
+requests
+pyogrio
+streamlit==1.35.0
