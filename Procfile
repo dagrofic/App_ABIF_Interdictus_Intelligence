@@ -1,1 +1,0 @@
-web: streamlit run App_ABIF_Interdictus_Intelligence_RESTAURADO_COMERCIAL_V3.py
