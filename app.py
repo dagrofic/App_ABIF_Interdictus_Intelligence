@@ -9,6 +9,7 @@ st.set_page_config(layout="wide")
 
 MAPA_URL = "https://drive.google.com/uc?id=1b-dZoffPF6lv3XsVAjx-1EZUT7AKVQ2o"
 MAPA_PATH = "/tmp/mapas_restritivos_completo.gpkg"
+CRS_PADRAO = "EPSG:4674"
 
 def baixar_mapa():
     if not os.path.exists(MAPA_PATH) or os.path.getsize(MAPA_PATH) < 100_000_000:
@@ -17,7 +18,9 @@ def baixar_mapa():
 def carregar_geodados():
     if not os.path.exists(MAPA_PATH):
         baixar_mapa()
-    return gpd.read_file(MAPA_PATH)
+    gdf = gpd.read_file(MAPA_PATH)
+    gdf = gdf.to_crs(CRS_PADRAO)
+    return gdf
 
 def ler_kml(uploaded_file):
     kml = uploaded_file.read().decode("utf-8")
@@ -34,13 +37,25 @@ def ler_kml(uploaded_file):
 def verificar_intersecao(poligonos_usuario, gdf_restritivo):
     inters = []
     for geom in poligonos_usuario:
-        gdf_poly = gpd.GeoDataFrame(geometry=[geom], crs=gdf_restritivo.crs)
+        gdf_poly = gpd.GeoDataFrame(geometry=[geom], crs=CRS_PADRAO)
         sobreposicoes = gpd.overlay(gdf_poly, gdf_restritivo, how="intersection")
         if not sobreposicoes.empty:
             inters.append(sobreposicoes)
     if inters:
         return pd.concat(inters, ignore_index=True)
     return pd.DataFrame()
+
+def campo_alerta(resultado):
+    campos = resultado.columns
+    if "NOME_CAMADA" in campos:
+        return resultado["NOME_CAMADA"].astype(str)
+    if "NOME" in campos:
+        return resultado["NOME"].astype(str)
+    if "DESCRICAO" in campos:
+        return resultado["DESCRICAO"].astype(str)
+    if "CAMADA" in campos:
+        return resultado["CAMADA"].astype(str)
+    return pd.Series(["Camada não identificada"] * len(resultado))
 
 st.title("ABIF Interdictus Intelligence – Verificação de Áreas Restritivas")
 
@@ -60,13 +75,9 @@ if uploaded_file:
         resultado = verificar_intersecao(poligonos_usuario, gdf_restritivo)
     if not resultado.empty:
         st.subheader("Áreas Restritivas Intersectadas")
-        resultado["alerta"] = (
-            "ALERTA – "
-            + resultado["NOME_CAMADA"].astype(str)
-            + " ("
-            + resultado["UF"].astype(str)
-            + ")"
-        )
+        alerta = campo_alerta(resultado)
+        uf = resultado["UF"].astype(str) if "UF" in resultado.columns else "UF não identificada"
+        resultado["alerta"] = "ALERTA – " + alerta + " (" + uf + ")"
         st.dataframe(resultado[["alerta", "geometry"]])
         st.success("Foram encontradas interseções restritivas no(s) polígono(s) enviado(s)")
     else:
